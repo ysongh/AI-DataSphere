@@ -4,22 +4,28 @@ pragma solidity ^0.8.28;
 contract DataMarketplace {
     error DataMarketplace__NotAIAgent();
 
-    uint32 public latestDataNum;
-
     struct Data {
         string description;
         address user;
     }
 
+    uint32 public latestDataNum;
     address public aiAgent;
-
+    address public owner;
+    string public dataNeeded;
     Data[] public aiTrainingData;
 
     event NewDataCreated(uint32 indexed dataIndex, Data data);
     event AIAgentResponded(uint32 indexed dataIndex, Data data, address aiAgent, bool isValid);
 
+    modifier isOwner() {
+        require(msg.sender == owner, "Not the Owner");
+        _;
+    }
+
     constructor(address newAIAgent) {
         aiAgent = newAIAgent;
+        owner = msg.sender;
     }
 
     function createNewData(
@@ -47,5 +53,9 @@ contract DataMarketplace {
         if (isValid) aiTrainingData.push(Data(data.description, data.user));
 
         emit AIAgentResponded(referenceDataIndex, data, msg.sender, isValid);
+    }
+
+    function updateDataNeeded(string memory newData) public {
+        dataNeeded = newData;
     }
 }
