@@ -85,6 +85,29 @@ class SmartContractAgent:
         # Initialize state
         self.last_block = self.w3.eth.block_number
         self.gas_price_threshold = 50  # in gwei
+    
+    def create_new_data(self):
+        try:
+            current_gas_price = self.w3.eth.gas_price
+            if current_gas_price > self.gas_price_threshold * 10**9:
+                print("Gas price too high, skipping transaction")
+                return
+            
+            nonce = self.w3.eth.get_transaction_count(self.account.address)
+            
+            transaction = self.contract.functions.createNewData("Test").build_transaction({
+                'from': self.account.address,
+                'gas': 200000,
+                'gasPrice': current_gas_price,
+                'nonce': nonce,
+            })
+            
+            tx_hash = self.w3.eth.send_transaction(transaction)
+            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            print(f"Transaction successful! Hash: {tx_hash.hex()}")
+            
+        except Exception as e:
+            print(f"Error executing transaction: {e}")
 
 # Example usage
 def main():
@@ -301,6 +324,7 @@ def main():
     NETWORK_URL = "http://127.0.0.1:8545"
     
     newContract = SmartContractAgent(CONTRACT_ADDRESS, CONTRACT_ABI, NETWORK_URL)
+    newContract.create_new_data()
 
 if __name__ == "__main__":
     main()
