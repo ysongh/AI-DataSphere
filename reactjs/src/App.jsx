@@ -4,7 +4,7 @@ function App() {
 
   return (
     <>
-      <h1>AI DataSphere</h1>
+      <h1 className="text-4xl">AI DataSphere</h1>
     </>
   )
 }
