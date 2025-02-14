@@ -9,6 +9,7 @@ module.exports = {
       url: "https://api.calibration.node.glif.io/rpc/v1",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      timeout: 120000,
     },
   },
   paths: {
