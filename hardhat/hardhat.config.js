@@ -11,4 +11,8 @@ module.exports = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  paths: {
+    artifacts: '../reactjs/src/artifacts',
+    cache: '../reactjs/src/cache',
+  },
 };
