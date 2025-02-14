@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import time
 import warnings
 from web3 import Web3
 from eth_account import Account
@@ -85,6 +86,10 @@ class SmartContractAgent:
         # Initialize state
         self.last_block = self.w3.eth.block_number
         self.gas_price_threshold = 50  # in gwei
+
+        # Store event signatures
+        self.event_signatures = {}
+        self.initialize_event_signatures()
     
     def create_new_data(self):
         try:
@@ -135,10 +140,89 @@ class SmartContractAgent:
             
         except Exception as e:
             print(f"Error executing transaction: {e}")
+    
+    def initialize_event_signatures(self):
+        """Initialize event signatures from contract ABI"""
+        for item in self.contract.abi:
+            if item['type'] == 'event':
+                event_name = item['name']
+                inputs = [f"{input['type']}" for input in item['inputs']]
+                event_signature = f"{event_name}({','.join(inputs)})"
+                self.event_signatures[event_name] = self.w3.keccak(
+                    text=event_signature
+                ).hex()
+                print(f"Initialized event signature for {event_name}: {event_signature}")
+    
+    def monitor_events(self, event_name):
+        """Monitor specific contract events"""
+        try:
+            print(f"Checking for {event_name} events...")
+
+            # Get the latest block number
+            latest_block = self.w3.eth.block_number
+            print(f"Scanning blocks from {self.last_block} to {latest_block}")
+            
+            # Create event filter
+            event_filter = getattr(self.contract.events, event_name)
+            
+            # Fetch event logs using eth.get_logs
+            event_filter_params = {
+                'address': self.contract_address,
+                'fromBlock': self.last_block,
+                'toBlock': latest_block,
+                'topics': [self.event_signatures.get(event_name)]
+            }
+            
+            # Get the event signature (topic)
+            event_signature = self.w3.keccak(
+                text=f"{event_name}()"
+            ).hex()  # Modify the signature based on your event parameters
+            event_filter_params['topics'] = [event_signature]
+            
+            logs = self.w3.eth.get_logs(event_filter_params)
+            
+            # Process events
+            for log in logs:
+                # Decode the event data
+                decoded_log = event_filter.process_log(log)
+                self.process_event(decoded_log)
+            
+            # Update last checked block
+            self.last_block = latest_block
+            
+        except Exception as e:
+            print(f"Error monitoring events: {e}")
+
+    def process_event(self, event):
+        # Example event processing logic
+        event_name = event['event']
+        event_args = dict(event['args'])
+        
+        print(f"Processing event: {event_name}")
+        print(f"Event data: {event_args}")
+
+    def run(self, polling_interval=60):
+        print("Starting agent...")
+        print(f"Watching contract at: {self.contract_address}")
+        print("Initialized event signatures:", self.event_signatures)
+        
+        while True:
+            try:
+                # Monitor relevant events
+                self.monitor_events("NewDataCreated")
+                
+                
+                # Sleep before next iteration
+                print(f"Sleeping for {polling_interval} seconds...")
+                time.sleep(polling_interval)
+                
+            except Exception as e:
+                print(f"Error in main loop: {e}")
+                time.sleep(polling_interval)
 
 # Example usage
 def main():
-    CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    CONTRACT_ADDRESS = "0x10502f20179230c67b17531355d7e439A27Fc924"
     CONTRACT_ABI = """[
         {
         "inputs": [
@@ -348,10 +432,10 @@ def main():
         }
     ]"""
 
-    NETWORK_URL = "http://127.0.0.1:8545"
+    NETWORK_URL = "https://api.calibration.node.glif.io/rpc/v1"
     
     newContract = SmartContractAgent(CONTRACT_ADDRESS, CONTRACT_ABI, NETWORK_URL)
-    newContract.respond_to_new_data()
+    newContract.run()
 
 if __name__ == "__main__":
     main()

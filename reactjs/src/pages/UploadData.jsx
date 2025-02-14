@@ -17,7 +17,7 @@ const UploadData = () => {
 
   const addData = async () => {
     try {
-      const DataMarketplace = new ethers.Contract("0x5FbDB2315678afecb367f032d93F642f64180aa3", DataMarketplaceContract.abi, userSigner);
+      const DataMarketplace = new ethers.Contract("0x10502f20179230c67b17531355d7e439A27Fc924", DataMarketplaceContract.abi, userSigner);
       const transaction = await DataMarketplace.createNewData("Test");
       const tx = await transaction.wait();
       console.log(tx);
