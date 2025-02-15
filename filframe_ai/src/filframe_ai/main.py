@@ -194,9 +194,25 @@ class SmartContractAgent:
             print(f"Data Index: {data_index}")
             print(f"Description: {data['description']}")
             print(f"User: {data['user']}")
+
+            self.run_crew_ai(data['description'])
             
         except Exception as e:
             print(f"Error handling new data: {e}")
+    
+    def run_crew_ai(self, description):
+        """
+        Run the crew.
+        """
+        inputs = {
+            'topic': description,
+            'current_year': str(datetime.now().year)
+        }
+        
+        try:
+            FilframeAi().crew().kickoff(inputs=inputs)
+        except Exception as e:
+            raise Exception(f"An error occurred while running the crew: {e}")
 
     def run(self, polling_interval=10):
         print("\nStarting DataMarketplace AI Agent...")
