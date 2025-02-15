@@ -83,13 +83,9 @@ class SmartContractAgent:
         self.private_key = os.getenv('PRIVATE_KEY')
         self.account = Account.from_key(self.private_key)
         
-        # Initialize state
-        self.last_block = self.w3.eth.block_number
-        self.gas_price_threshold = 50  # in gwei
-
-        # Store event signatures
-        self.event_signatures = {}
-        self.initialize_event_signatures()
+         # Initialize state
+        self.last_block = self.w3.eth.block_number - 1000  # Look back 1000 blocks
+        print(f"Starting from block {self.last_block}")
     
     def create_new_data(self):
         try:
@@ -140,82 +136,76 @@ class SmartContractAgent:
             
         except Exception as e:
             print(f"Error executing transaction: {e}")
-    
-    def initialize_event_signatures(self):
-        """Initialize event signatures from contract ABI"""
-        for item in self.contract.abi:
-            if item['type'] == 'event':
-                event_name = item['name']
-                inputs = [f"{input['type']}" for input in item['inputs']]
-                event_signature = f"{event_name}({','.join(inputs)})"
-                self.event_signatures[event_name] = self.w3.keccak(
-                    text=event_signature
-                ).hex()
-                print(f"Initialized event signature for {event_name}: {event_signature}")
-    
-    def monitor_events(self, event_name):
+
+    def monitor_events(self):
         """Monitor specific contract events"""
         try:
-            print(f"Checking for {event_name} events...")
-
-            # Get the latest block number
-            latest_block = self.w3.eth.block_number
-            print(f"Scanning blocks from {self.last_block} to {latest_block}")
+            current_block = self.w3.eth.block_number
+            print(f"\nChecking blocks {self.last_block} to {current_block}")
             
-            # Create event filter
-            event_filter = getattr(self.contract.events, event_name)
-            
-            # Fetch event logs using eth.get_logs
-            event_filter_params = {
+            # Monitor NewDataCreated events
+            new_data_filter = {
                 'address': self.contract_address,
                 'fromBlock': self.last_block,
-                'toBlock': latest_block,
-                'topics': [self.event_signatures.get(event_name)]
+                'toBlock': current_block,
+                'topics': [
+                    self.w3.keccak(text='NewDataCreated(uint32,(string,address))').hex()
+                ]
             }
             
-            # Get the event signature (topic)
-            event_signature = self.w3.keccak(
-                text=f"{event_name}()"
-            ).hex()  # Modify the signature based on your event parameters
-            event_filter_params['topics'] = [event_signature]
+            # Monitor AIAgentResponded events
+            ai_response_filter = {
+                'address': self.contract_address,
+                'fromBlock': self.last_block,
+                'toBlock': current_block,
+                'topics': [
+                    self.w3.keccak(text='AIAgentResponded(uint32,(string,address),address,bool)').hex()
+                ]
+            }
             
-            logs = self.w3.eth.get_logs(event_filter_params)
+            # Get and process logs
+            new_data_logs = self.w3.eth.get_logs(new_data_filter)
+            ai_response_logs = self.w3.eth.get_logs(ai_response_filter)
             
-            # Process events
-            for log in logs:
-                # Decode the event data
-                decoded_log = event_filter.process_log(log)
-                self.process_event(decoded_log)
+            print(f"Found {len(new_data_logs)} new data events")
+            print(f"Found {len(ai_response_logs)} AI response events")
             
-            # Update last checked block
-            self.last_block = latest_block
+            # Process NewDataCreated events
+            for log in new_data_logs:
+                decoded_log = self.contract.events.NewDataCreated().process_log(log)
+                self.handle_new_data(decoded_log)
+            
+            # Process AIAgentResponded events
+            for log in ai_response_logs:
+                decoded_log = self.contract.events.AIAgentResponded().process_log(log)
+                self.handle_ai_response(decoded_log)
+            
+            self.last_block = current_block
             
         except Exception as e:
             print(f"Error monitoring events: {e}")
 
-    def process_event(self, event):
-        # Example event processing logic
-        event_name = event['event']
-        event_args = dict(event['args'])
-        
-        print(f"Processing event: {event_name}")
-        print(f"Event data: {event_args}")
+    def handle_new_data(self, event):
+        try:
+            data_index = event['args']['dataIndex']
+            data = event['args']['data']
+            
+            print(f"\nNew Data Created:")
+            print(f"Data Index: {data_index}")
+            print(f"Description: {data['description']}")
+            print(f"User: {data['user']}")
+            
+        except Exception as e:
+            print(f"Error handling new data: {e}")
 
-    def run(self, polling_interval=60):
-        print("Starting agent...")
-        print(f"Watching contract at: {self.contract_address}")
-        print("Initialized event signatures:", self.event_signatures)
+    def run(self, polling_interval=10):
+        print("\nStarting DataMarketplace AI Agent...")
         
         while True:
             try:
-                # Monitor relevant events
-                self.monitor_events("NewDataCreated")
-                
-                
-                # Sleep before next iteration
-                print(f"Sleeping for {polling_interval} seconds...")
+                self.monitor_events()
+                print(f"\nSleeping for {polling_interval} seconds...")
                 time.sleep(polling_interval)
-                
             except Exception as e:
                 print(f"Error in main loop: {e}")
                 time.sleep(polling_interval)
