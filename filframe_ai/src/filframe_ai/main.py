@@ -72,6 +72,7 @@ def test():
 
 class SmartContractAgent:
     def __init__(self, contract_address, contract_abi, network_url):
+        self.chain_id = 314159
         self.gas_price_threshold = 50
 
         # Setup logging
@@ -109,40 +110,28 @@ class SmartContractAgent:
 
     def create_new_data(self, newData):
         try:
-            # Prepare transaction
             nonce = self.w3.eth.get_transaction_count(self.address)
-            gas_price = self.w3.eth.gas_price
 
-            # Build transaction
-            transaction = self.contract.functions.updateDataNeeded(
-                newData,
-            ).build_transaction({
+            transaction = self.contract.functions.updateDataNeeded(newData).build_transaction({
+                "chainId": self.chain_id,
                 'from': self.address,
-                'nonce': nonce,
-                'gas': 200000,
-                'gasPrice': gas_price,
-                'chainId': self.w3.eth.chain_id 
+                'nonce': nonce + 1,
+                'gasPrice': self.w3.eth.gas_price,
             })
-            
-           # Sign transaction
+
             signed_txn = self.w3.eth.account.sign_transaction(
                 transaction, 
-                private_key=self.account.key.hex()  # Convert key to hex string
+                self.account.key
             )
-            
-            # Send transaction
+
             tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            
-            # Wait for transaction receipt
-            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
-            
-            self.logger.info(
-                f"Responded to data index {data_index}. "
-                f"Transaction hash: {receipt['transactionHash'].hex()}"
-            )
+
+            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+
+            print(f"tx_receipt: {tx_receipt}")
             
         except Exception as e:
-           self.logger.error(f"Error processing data event: {e}", exc_info=True)
+           self.logger.error(f"Error processing data event: {e}")
     
     def respond_to_new_data(self):
         try:
@@ -552,7 +541,7 @@ def main():
     NETWORK_URL = "https://api.calibration.node.glif.io/rpc/v1"
     
     newContract = SmartContractAgent(CONTRACT_ADDRESS, CONTRACT_ABI, NETWORK_URL)
-    newContract.run()
+    newContract.create_new_data("New Test")
 
 if __name__ == "__main__":
     main()
