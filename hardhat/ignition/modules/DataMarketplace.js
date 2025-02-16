@@ -5,7 +5,7 @@ const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
 
 module.exports = buildModule("DataMarketplaceModule", (m) => {
-  const dataMarketplace = m.contract("DataMarketplace", ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"]);
+  const dataMarketplace = m.contract("DataMarketplace", ["0xF91Ca5BB6F157731DF516b1968A0e9046cc7Ed48"]);
 
   return { dataMarketplace };
 });

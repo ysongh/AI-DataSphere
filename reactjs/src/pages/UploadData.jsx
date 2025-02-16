@@ -34,7 +34,7 @@ const UploadData = () => {
         throw new Error('Please enter description');
       }
 
-      const DataMarketplace = new ethers.Contract("0x10502f20179230c67b17531355d7e439A27Fc924", DataMarketplaceContract.abi, userSigner);
+      const DataMarketplace = new ethers.Contract("0x9BEf2EAB45B99426b6f5565E6752CE5651e4B46f", DataMarketplaceContract.abi, userSigner);
       const transaction = await DataMarketplace.createNewData(description);
       const tx = await transaction.wait();
       console.log(tx);

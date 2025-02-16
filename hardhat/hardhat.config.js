@@ -12,8 +12,8 @@ module.exports = {
       timeout: 120000,
     },
   },
-  paths: {
-    artifacts: '../reactjs/src/artifacts',
-    cache: '../reactjs/src/cache',
-  },
+  // paths: {
+  //   artifacts: '../reactjs/src/artifacts',
+  //   cache: '../reactjs/src/cache',
+  // },
 };

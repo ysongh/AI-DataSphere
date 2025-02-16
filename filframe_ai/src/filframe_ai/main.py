@@ -6,6 +6,7 @@ from web3 import Web3
 from eth_account import Account
 from dotenv import load_dotenv
 import os
+import logging
 
 from datetime import datetime
 
@@ -71,6 +72,12 @@ def test():
 
 class SmartContractAgent:
     def __init__(self, contract_address, contract_abi, network_url):
+        self.gas_price_threshold = 50
+
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+
         # Connect to Ethereum network
         self.w3 = Web3(Web3.HTTPProvider(network_url))
         
@@ -82,33 +89,60 @@ class SmartContractAgent:
         load_dotenv()
         self.private_key = os.getenv('PRIVATE_KEY')
         self.account = Account.from_key(self.private_key)
+        self.address = self.account.address
         
          # Initialize state
         self.last_block = self.w3.eth.block_number - 1000  # Look back 1000 blocks
         print(f"Starting from block {self.last_block}")
     
-    def create_new_data(self):
+    def read_data_needed(self):
+        """
+        Read a public variable from the contract
+        """
         try:
-            current_gas_price = self.w3.eth.gas_price
-            if current_gas_price > self.gas_price_threshold * 10**9:
-                print("Gas price too high, skipping transaction")
-                return
-            
-            nonce = self.w3.eth.get_transaction_count(self.account.address)
-            
-            transaction = self.contract.functions.createNewData("Test").build_transaction({
-                'from': self.account.address,
-                'gas': 200000,
-                'gasPrice': current_gas_price,
+            # Get the variable using the auto-generated getter function
+            value = self.contract.functions.getDataNeeded().call()
+            return value
+        except Exception as e:
+            print(f"Error reading data: {e}")
+            return None
+
+    def create_new_data(self, newData):
+        try:
+            # Prepare transaction
+            nonce = self.w3.eth.get_transaction_count(self.address)
+            gas_price = self.w3.eth.gas_price
+
+            # Build transaction
+            transaction = self.contract.functions.updateDataNeeded(
+                newData,
+            ).build_transaction({
+                'from': self.address,
                 'nonce': nonce,
+                'gas': 200000,
+                'gasPrice': gas_price,
+                'chainId': self.w3.eth.chain_id 
             })
             
-            tx_hash = self.w3.eth.send_transaction(transaction)
-            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
-            print(f"Transaction successful! Hash: {tx_hash.hex()}")
+           # Sign transaction
+            signed_txn = self.w3.eth.account.sign_transaction(
+                transaction, 
+                private_key=self.account.key.hex()  # Convert key to hex string
+            )
+            
+            # Send transaction
+            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            
+            # Wait for transaction receipt
+            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            self.logger.info(
+                f"Responded to data index {data_index}. "
+                f"Transaction hash: {receipt['transactionHash'].hex()}"
+            )
             
         except Exception as e:
-            print(f"Error executing transaction: {e}")
+           self.logger.error(f"Error processing data event: {e}", exc_info=True)
     
     def respond_to_new_data(self):
         try:
@@ -228,7 +262,7 @@ class SmartContractAgent:
 
 # Example usage
 def main():
-    CONTRACT_ADDRESS = "0x10502f20179230c67b17531355d7e439A27Fc924"
+    CONTRACT_ADDRESS = "0x9BEf2EAB45B99426b6f5565E6752CE5651e4B46f"
     CONTRACT_ABI = """[
         {
         "inputs": [
@@ -390,12 +424,76 @@ def main():
         },
         {
         "inputs": [],
+        "name": "dataNeeded",
+        "outputs": [
+            {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+        },
+        {
+        "inputs": [],
+        "name": "getAllData",
+        "outputs": [
+            {
+            "components": [
+                {
+                "internalType": "string",
+                "name": "description",
+                "type": "string"
+                },
+                {
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+                }
+            ],
+            "internalType": "struct DataMarketplace.Data[]",
+            "name": "",
+            "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+        },
+        {
+        "inputs": [],
+        "name": "getDataNeeded",
+        "outputs": [
+            {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+        },
+        {
+        "inputs": [],
         "name": "latestDataNum",
         "outputs": [
             {
             "internalType": "uint32",
             "name": "",
             "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+        },
+        {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
             }
         ],
         "stateMutability": "view",
@@ -432,6 +530,19 @@ def main():
             }
         ],
         "name": "respondToNewData",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+        },
+        {
+        "inputs": [
+            {
+            "internalType": "string",
+            "name": "newData",
+            "type": "string"
+            }
+        ],
+        "name": "updateDataNeeded",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
