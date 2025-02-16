@@ -58,4 +58,12 @@ contract DataMarketplace {
     function updateDataNeeded(string memory newData) public {
         dataNeeded = newData;
     }
+
+    function getDataNeeded() public view returns(string memory){
+       return dataNeeded;
+    }
+
+    function getAllData() public view returns(Data[] memory){
+       return aiTrainingData;
+    }
 }
