@@ -1,8 +1,8 @@
 research_task:
   description: >
-    Conduct a thorough research about {topic} matching with {data_needed}
+    Conduct a thorough research about {topic} and {data_needed}
   expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
+    A list with 10 bullet points of matches between {topic} and {data_needed}
   agent: researcher
 
 reporting_task:

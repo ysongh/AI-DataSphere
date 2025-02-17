@@ -134,29 +134,32 @@ class SmartContractAgent:
         except Exception as e:
            self.logger.error(f"Error processing data event: {e}")
     
-    def respond_to_new_data(self):
+    def respond_to_new_data(self, description):
         try:
             new_data = {
-                'description': "Test",
+                'description': description,
                 'user': Web3.to_checksum_address('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'),
             }
-            current_gas_price = self.w3.eth.gas_price
-            if current_gas_price > self.gas_price_threshold * 10**9:
-                print("Gas price too high, skipping transaction")
-                return
-            
-            nonce = self.w3.eth.get_transaction_count(self.account.address)
-            
+
+            nonce = self.w3.eth.get_transaction_count(self.address)
+
             transaction = self.contract.functions.respondToNewData(new_data, 2, True).build_transaction({
-                'from': self.account.address,
-                'gas': 200000,
-                'gasPrice': current_gas_price,
-                'nonce': nonce,
+                "chainId": self.chain_id,
+                'from': self.address,
+                'nonce': nonce + 1,
+                'gasPrice': self.w3.eth.gas_price,
             })
-            
-            tx_hash = self.w3.eth.send_transaction(transaction)
+
+            signed_txn = self.w3.eth.account.sign_transaction(
+                transaction, 
+                self.account.key
+            )
+
+            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+
             tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
-            print(f"Transaction successful! Hash: {tx_hash.hex()}")
+
+            print(f"tx_receipt: {tx_receipt}")
             
         except Exception as e:
             print(f"Error executing transaction: {e}")
@@ -237,14 +240,17 @@ class SmartContractAgent:
         
         try:
             res = FilframeAi().crew().kickoff(inputs=inputs)
-            if "True" in res:
-                print("Word found!")
-            else:
-                print("Word not found!")
+            # if "True" in res:
+            #     print("Word found!")
+            # else:
+            #     print("Word not found!")
+
+            self.respond_to_new_data(description)
+
         except Exception as e:
             raise Exception(f"An error occurred while running the crew: {e}")
 
-    def run(self, polling_interval=10):
+    def run(self, polling_interval=20):
         print("\nStarting DataMarketplace AI Agent...")
         
         while True:
@@ -548,7 +554,7 @@ def main():
     NETWORK_URL = "https://api.calibration.node.glif.io/rpc/v1"
     
     newContract = SmartContractAgent(CONTRACT_ADDRESS, CONTRACT_ABI, NETWORK_URL)
-    newContract.run_crew_ai("Warm water")
+    newContract.run()
 
 if __name__ == "__main__":
     main()

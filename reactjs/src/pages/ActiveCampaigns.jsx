@@ -11,7 +11,7 @@ const ActiveCampaigns = () => {
       title: "Image Classification Dataset",
       description: "Collect labeled images for ML model training",
       deadline: "2025-03-15",
-      submissionsCount: 45,
+      submissionsCount: 2,
       requiredSubmissions: 100,
       category: "image",
       status: "active"
@@ -21,7 +21,7 @@ const ActiveCampaigns = () => {
       title: "Text Sentiment Analysis",
       description: "Gather sentiment-labeled text samples",
       deadline: "2025-03-20",
-      submissionsCount: 120,
+      submissionsCount: 1,
       requiredSubmissions: 200,
       category: "text",
       status: "active"
@@ -31,7 +31,7 @@ const ActiveCampaigns = () => {
       title: "Voice Command Dataset",
       description: "Record voice commands for AI assistant",
       deadline: "2025-03-25",
-      submissionsCount: 30,
+      submissionsCount: 0,
       requiredSubmissions: 150,
       category: "audio",
       status: "active"
