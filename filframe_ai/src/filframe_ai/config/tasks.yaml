@@ -1,6 +1,6 @@
 research_task:
   description: >
-    Conduct a thorough research about {topic}
+    Conduct a thorough research about {topic} matching with {data_needed}
   expected_output: >
     A list with 10 bullet points of the most relevant information about {topic}
   agent: researcher
@@ -10,6 +10,6 @@ reporting_task:
     Review the context you got and expand each topic into a full section for a report.
     Make sure the report is detailed and contains any and all relevant information.
   expected_output: >
-    Return true or false if {topic} is useful
+    Return true or false if {topic} match with {data_needed}
     Formatted as markdown without '```'
   agent: reporting_analyst

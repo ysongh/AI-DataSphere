@@ -103,6 +103,7 @@ class SmartContractAgent:
         try:
             # Get the variable using the auto-generated getter function
             value = self.contract.functions.getDataNeeded().call()
+            print(f"Data Needed: {value}")
             return value
         except Exception as e:
             print(f"Error reading data: {e}")
@@ -227,13 +228,19 @@ class SmartContractAgent:
         """
         Run the crew.
         """
+        data_needed = self.read_data_needed()
+
         inputs = {
             'topic': description,
-            'current_year': str(datetime.now().year)
+            'data_needed': data_needed
         }
         
         try:
-            FilframeAi().crew().kickoff(inputs=inputs)
+            res = FilframeAi().crew().kickoff(inputs=inputs)
+            if "True" in res:
+                print("Word found!")
+            else:
+                print("Word not found!")
         except Exception as e:
             raise Exception(f"An error occurred while running the crew: {e}")
 
@@ -541,7 +548,7 @@ def main():
     NETWORK_URL = "https://api.calibration.node.glif.io/rpc/v1"
     
     newContract = SmartContractAgent(CONTRACT_ADDRESS, CONTRACT_ABI, NETWORK_URL)
-    newContract.create_new_data("New Test")
+    newContract.run_crew_ai("Warm water")
 
 if __name__ == "__main__":
     main()
